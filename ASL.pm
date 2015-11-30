@@ -206,29 +206,114 @@ sub resample {
 
 
 =pod
+Determine list of ROIs to use for ROI averaging (including overall GM mask)
+=cut
+sub getROIsList {
+	my ($cand_masks_dir, $DKT_dir, $gm_match) = @_;
+	
+	my ($gm_masks) = &getMincs($cand_masks_dir, $gm_match);
+	my @roi_list = $$gm_masks[0];
+	opendir (DIR, $DKT_dir) or die "$!";
+	my @files = readdir(DIR);
+	closedir(DIR);
+	foreach my $file (@files) {
+		next if ($file eq ".") || ($file eq "..") || ($file eq ".DS_Store");
+		$file =~ s/\.mnc//i;
+		push (@roi_list, $file);
+	}
+	
+	return (\ @roi_list);
+
+}
+
+
+=pod
+Determine title row of the spreadsheet to create with ROI averages
+=cut
+sub createTitleRow {
+	my ($roi_list) = @_;
+	
+	my $title_row = "CandID, Visit, CBF_map";
+	
+	# Loop through ROI list to determine column names
+	foreach my $roi (@$roi_list) {
+		my $roi_name = $roi;
+		my $dkt_basename = "corrected_rwOASIS-TRT-" 
+							. "20_DKT31_CMA_jointfusion_labels_in_MNI152_onlyGM_";
+		
+		# determine ROI name to use for spreadsheet
+		$roi_name = "GM" if ($roi =~ m/pve_exactgm_brain_asl.mnc/i);
+		$roi_name =~ s/$dkt_basename//i if ($roi =~ m/$dkt_basename/i); 
+		$roi_name =~ s/_pve_exactgm_asl//i;							     
+
+		# Push name of the ROI in the title row
+# 		$title_row = $title_row  . ","
+# 					 . $roi_name . "_average,"
+# 					 . $roi_name . "_stddev,"
+# 					 . $roi_name . "_min,"
+# 					 . $roi_name . "_max,"
+# 					 . $roi_name . "_number_of_voxels,"
+# 					 . $roi_name . "_volume_mm3";
+		$title_row = $title_row . "," . $roi_name . "_average";
+									     
+	}
+	
+	$title_row .= "\n";
+	
+	return $title_row;
+
+}
+
+
+=pod
+Create spreadsheet row for the CBF map
+=cut
+sub createSpreadsheetRow {
+	my ($roi_list, $candID, $visit, $cbf_map, $mask_dir, $plugin, $options) = @_;
+
+	my $row = $candID . ", " . $visit . ", " . $cbf_map;
+	
+	foreach my $roi (@$roi_list) {
+	
+		unless ($roi =~ m/pve_exactgm_brain_asl.mnc/i) {
+			my $subject_dir = $mask_dir . "/" . $candID . "/" . $visit;
+			($roi) = &getMincs($subject_dir, $roi);
+			$roi = $$roi[0];
+		}
+		my ($roi_values) = &computeROIs($roi, $cbf_map, $plugin, $options);
+	
+# 		$row = $row . ","
+# 				. $$roi_values{'Average'} . ","
+# 				. $$roi_values{'Stddev'} . ","
+# 				. $$roi_values{'Min'} . ","
+# 				. $$roi_values{'Max'} . ","
+# 				. $$roi_values{'# voxels'} . ","
+# 				. $$roi_values{'Volume (mm3)'};
+		$row = $row . "," . $$roi_values{'Average'};
+
+	}
+
+	$row .= "\n";
+
+	return $row;
+
+}
+
+
+=pod
 Compute ROI averaging in GM masks and write it on
 =cut
 sub computeROIs {
-    my  ($candID,$visit,$gm_ASLrspld,$cbf_maps,$csv_gp,$plugin,$nl_options)  =   @_;
-
+    my ($roi, $cbf_map, $plugin, $nl_options) = @_;
+	
     my $mincstats_options = "-stddev -min -max -count -volume";
-    foreach my $cbf_map (@$cbf_maps) {
-        foreach my $gm_mask (@$gm_ASLrspld){
-            my ($average) = &executeNL($cbf_map,$gm_mask,$plugin,$nl_options);
-            my ($values)  = &executeMincstats($cbf_map, $gm_mask, $mincstats_options);
-            &writeCSV($candID, 
-                        $visit, 
-                        $cbf_map, 
-                        $gm_mask, 
-                        $csv_gp, 
-                        $average, 
-                        $$values{'Stddev'}, 
-                        $$values{'Min'}, 
-                        $$values{'Max'}, 
-                        $$values{'# voxels'}, 
-                        $$values{'Volume (mm3)'});
-        }
-    }
+#    my ($values)  = &executeMincstats($cbf_map, $roi, $mincstats_options);
+    my ($average) = &executeNL($cbf_map, $roi, $plugin, $nl_options);
+    
+    # add average to the hash of values 
+    $values->{'Average'} = $average;
+       
+	return ($values);  
 }
 
 =pod
