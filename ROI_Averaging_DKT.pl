@@ -118,7 +118,7 @@ foreach my $row (@rows) {
     if ($nlavg) {
     	$plugin = "ROI Averaging";
 		# read neurolens XML file 
-		my ($nldo_opt) = &ASL::readNeurolensXMLfile($xml_file, $plugin) if ($nlavg);
+		my ($nldo_opt) = &ASL::readNeurolensXMLfile($xml_file) if ($nlavg);
 		# determine options for ROI Averaging
     	($nloptions)= &ASL::getParameters($nldo_opt, $plugin);
     }

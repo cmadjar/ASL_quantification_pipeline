@@ -112,7 +112,7 @@ Read neurolens XML file
 =cut
 sub readNeurolensXMLfile {
 
-	my ($xml_file, $plugin_name) = @_;
+	my ($xml_file) = @_;
 
 	# read the XML file with Neurolens' options and get the list of plugins to run 
     # (should only be ROI Averaging)
@@ -131,21 +131,14 @@ This function reads the xml file filled with analysis' options to use and return
 =cut
 
 sub getParameters{
-    my  ($nldo_opt, $plug)  =   @_;
+    my  ($nldo_opt, $plug) = @_;
     
-    # read the XML file with analyses parameters
-#    my $xml = new XML::Simple (KeyAttr=>[]);
-#    my $data = $xml->XMLin($xml_file);
-
-    # dereference hash ref
-    # access <plugin> array
-
     my  (%parameters_list, $outputs_list, $options);
 
     foreach my $plugin ($nldo_opt->{plugin}){
         next unless ($plugin->{name} eq $plug); 
         
-        my @parameters_list =   @{$plugin->{parameter}};
+        my @parameters_list = @{$plugin->{parameter}};
         foreach my $p (@parameters_list){
             
             if($p->{name} eq "-subtractionOrder" ||
