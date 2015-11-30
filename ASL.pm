@@ -106,6 +106,24 @@ sub getOutputNames {
     return  ($MC_nlvolume, $MC_minc, $preprocessed_flow,$preprocessed_even,$flow_eff,$even_eff,$flow_se_eff,$even_se_eff,$cbf_map_nlvolume, $cbf_map_minc, $flow_snr, $even_snr);
 }
 
+
+=pod
+Read neurolens XML file
+=cut
+sub readNeurolensXMLfile {
+
+	my ($xml_file, $plugin_name) = @_;
+
+	# read the XML file with Neurolens' options and get the list of plugins to run 
+    # (should only be ROI Averaging)
+    my $xml      = new XML::Simple (KeyAttr=>[]);
+    my $nldo_opt = $xml->XMLin($xml_file);
+
+    return ($nldo_opt);
+
+}
+
+
 =pod
 
 This function reads the xml file filled with analysis' options to use and returns the options in a string.
@@ -122,10 +140,10 @@ sub getParameters{
     # dereference hash ref
     # access <plugin> array
 
-    my  (%parameters_list,$outputs_list,$options);
+    my  (%parameters_list, $outputs_list, $options);
 
-    foreach my $plugin (@{$nldo_opt->{plugin}}){
-        next    unless ($plugin->{name} eq $plug); 
+    foreach my $plugin ($nldo_opt->{plugin}){
+        next unless ($plugin->{name} eq $plug); 
         
         my @parameters_list =   @{$plugin->{parameter}};
         foreach my $p (@parameters_list){
@@ -134,11 +152,13 @@ sub getParameters{
                $p->{name} eq "-kernelType"       ||
                $p->{name} eq "-contrastList"     ||
                $p->{name} eq "-interpolationType"||
-               $p->{name} eq "-aslType"){
-                $options   =   $options." ".$p->{name}." \"".$p->{value}."\"";
+               $p->{name} eq "-aslType"			 ||
+               $p->{name} eq "-maskOperation"
+              ) {
+                $options = $options . " " . $p->{name} . " \"" . $p->{value} . "\"";
                 next;
             }
-            $options    =   $options." ".$p->{name}." ".$p->{value};
+            $options = $options . " " . $p->{name} . " " . $p->{value};
         
         }
     }
@@ -231,7 +251,7 @@ sub getROIsList {
 Determine title row of the spreadsheet to create with ROI averages
 =cut
 sub createTitleRow {
-	my ($roi_list) = @_;
+	my ($roi_list, $nlavg, $mincstats) = @_;
 	
 	my $title_row = "CandID, Visit, CBF_map";
 	
@@ -246,16 +266,18 @@ sub createTitleRow {
 		$roi_name =~ s/$dkt_basename//i if ($roi =~ m/$dkt_basename/i); 
 		$roi_name =~ s/_pve_exactgm_asl//i;							     
 
-		# Push name of the ROI in the title row
-# 		$title_row = $title_row  . ","
-# 					 . $roi_name . "_average,"
-# 					 . $roi_name . "_stddev,"
-# 					 . $roi_name . "_min,"
-# 					 . $roi_name . "_max,"
-# 					 . $roi_name . "_number_of_voxels,"
-# 					 . $roi_name . "_volume_mm3";
-		$title_row = $title_row . "," . $roi_name . "_average";
-									     
+		# Push name of the ROI in the title row with average if nlavg is set
+		$title_row = $title_row . "," . $roi_name . "_average" if $nlavg;
+		
+		# Push name of the ROI in the title row with mincstats fields if mincstats is set
+		if ($mincstats) {
+			$title_row = $title_row  . ","
+						 . $roi_name . "_stddev,"
+						 . $roi_name . "_min,"
+						 . $roi_name . "_max,"
+						 . $roi_name . "_number_of_voxels,"
+						 . $roi_name . "_volume_mm3";
+		}
 	}
 	
 	$title_row .= "\n";
@@ -269,28 +291,38 @@ sub createTitleRow {
 Create spreadsheet row for the CBF map
 =cut
 sub createSpreadsheetRow {
-	my ($roi_list, $candID, $visit, $cbf_map, $mask_dir, $plugin, $options) = @_;
+	my ($roi_list,   $candID,   $visit,		$cbf, 
+		$masks_dir,  $plugin,   $nloptions, $nlavg,
+		$mncoptions, $mincstats
+	   ) = @_;
 
 	my $row = $candID . ", " . $visit . ", " . $cbf_map;
 	
 	foreach my $roi (@$roi_list) {
 	
 		unless ($roi =~ m/pve_exactgm_brain_asl.mnc/i) {
-			my $subject_dir = $mask_dir . "/" . $candID . "/" . $visit;
+			my $subject_dir = $masks_dir . "/" . $candID . "/" . $visit;
 			($roi) = &getMincs($subject_dir, $roi);
 			$roi = $$roi[0];
 		}
-		my ($roi_values) = &computeROIs($roi, $cbf_map, $plugin, $options);
-	
-# 		$row = $row . ","
-# 				. $$roi_values{'Average'} . ","
-# 				. $$roi_values{'Stddev'} . ","
-# 				. $$roi_values{'Min'} . ","
-# 				. $$roi_values{'Max'} . ","
-# 				. $$roi_values{'# voxels'} . ","
-# 				. $$roi_values{'Volume (mm3)'};
-		$row = $row . "," . $$roi_values{'Average'};
+		my ($roi_values) = &computeROIs($roi,     $cbf,    	   $plugin, 
+										$nloptions, $mncoptions, $nlavg, 
+										$mincstats
+									   );
+									   
+		# if $nlavg is set, add average CBF to the row of the spreadsheet
+		$row .= "," . $$roi_values{'Average'} if ($nlavg);
 
+		# if #mincstats is set, add minc stats of the ROI to the row of the spreadsheet
+		if ($mincstats) {
+			$row = $row . ","
+					. $$roi_values{'Stddev'} . ","
+					. $$roi_values{'Min'} . ","
+					. $$roi_values{'Max'} . ","
+					. $$roi_values{'# voxels'} . ","
+					. $$roi_values{'Volume (mm3)'};
+		}
+		
 	}
 
 	$row .= "\n";
@@ -304,15 +336,16 @@ sub createSpreadsheetRow {
 Compute ROI averaging in GM masks and write it on
 =cut
 sub computeROIs {
-    my ($roi, $cbf_map, $plugin, $nl_options) = @_;
+    my ($roi, $cbf_map, $plugin, $nl_options, $mnc_options, $nlavg, $mincstats) = @_;
 	
-    my $mincstats_options = "-stddev -min -max -count -volume";
-#    my ($values)  = &executeMincstats($cbf_map, $roi, $mincstats_options);
-    my ($average) = &executeNL($cbf_map, $roi, $plugin, $nl_options);
+    my ($values) = &executeMincstats($cbf_map, $roi, $mnc_options) if ($mincstats);
     
-    # add average to the hash of values 
-    $values->{'Average'} = $average;
-       
+    if ($nlavg) {
+    	my ($average) = &executeNL($cbf_map, $roi, $plugin, $nl_options);
+    	# add average to the hash of values 
+    	$values->{'Average'} = $average;
+    }   
+	
 	return ($values);  
 }
 
