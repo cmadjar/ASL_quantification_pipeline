@@ -21,7 +21,7 @@ Usage $0 [options]
 USAGE
 my $log_dir     =   '/Users/cmadjar/Documents/McGill/PreventAD/Scripts/ASLquantification/logs/ASLquantFromDICOM_v2-054_Maverick/ASLquant_logs';
 my $out         =   '/Users/cmadjar/Documents/McGill/PreventAD/Transfers/ASL/From_dcm_files/31LP_candidates/ANALYSES/ASLquant_v2-054_Maverick';
-my $xml_template=   '/Users/cmadjar/Documents/McGill/PreventAD/Scripts/ASLquantification/ASLparameters_v2.0_2013-10-28.xml';
+my $xml_template=   '/Users/cmadjar/Documents/McGill/PreventAD/Scripts/ASLquantification/XML_analyses_parameters/ASLparameters_v2.0_2013-10-28.xml';
 my ($list,@args);
 
 my @args_table = (["-list",     "string",   1,  \$list,         "list of directories to look in for nlvolume files (converted from dicom)"],
@@ -43,7 +43,7 @@ print LOG "Log file, $date\n\n";
 if(!$list) { print "You need to specify a file with the list of directory to analyze.\n"; exit 1;}
 
 open(DIRS,"<$list");
-my @dirs    =   <DIRS>;
+my @dirs = <DIRS>;
 close(DIRS);
 foreach my $natdir(@dirs){
 	chomp($natdir);
@@ -57,8 +57,7 @@ foreach my $natdir(@dirs){
     `cp $xml_template $xml_file`  unless -e $xml_file;
 
     # read the XML file with analysis' options and get the list of plugins to run
-    my $xml         =   new XML::Simple (KeyAttr=>[]);
-    my $nldo_opt    =   $xml->XMLin($xml_file);
+    my $nldo_opt = &ASL::readNeurolensXMLfile($xml_file);
     my @plugin_list;
     foreach my $plug (@{$nldo_opt->{plugin}}){
         push(@plugin_list,$plug->{name});
