@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+
+<ASLparametersNb_v0.1>
+
+    <NeuroServVersion>
+        <buildTime>May 30 2013 16:59:42</buildTime>
+        <bundlePath>/Application/NeuroServ.app</bundlePath>
+        <bundleVersion>2.053</bundleVersion>
+        <gccVersion>4.2.1 Compatible Apple LLVM 4.2 (clang-425.0.28)</gccVersion>
+    </NeuroServVersion>
+
+    <plugin>
+        <name>ROI Averaging</name>
+        <parameter>
+            <name>-lowerThreshold</name>
+            <value>0.5</value>
+        </parameter>
+        <parameter>
+            <name>-upperThreshold</name>
+            <value>1.5</value>
+        </parameter>
+        <parameter>
+            <name>-maskOperation</name>
+            <value>Weighted Average</value>
+        </parameter>
+        <parameter>
+            <name>+roiSignalAsText</name>
+            <value>1</value>
+        </parameter>
+    </plugin>
+
+</ASLparametersNb_v0.1>
