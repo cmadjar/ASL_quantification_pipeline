@@ -289,7 +289,7 @@ sub createSpreadsheetRow {
 		$mncoptions, $mincstats
 	   ) = @_;
 
-	my $row = $candID . ", " . $visit . ", " . $cbf_map;
+	my $row = $candID . ", " . $visit . ", " . basename($cbf);
 	
 	foreach my $roi (@$roi_list) {
 	
