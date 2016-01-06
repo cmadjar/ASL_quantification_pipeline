@@ -19,9 +19,9 @@ Usage $0 [options]
 -help for options
 
 USAGE
-my $log_dir     =   '/Users/cmadjar/Documents/McGill/PreventAD/Scripts/ASLquantification/logs/ASLquantFromDICOM_v2-054_Maverick/ASLquant_logs';
-my $out         =   '/Users/cmadjar/Documents/McGill/PreventAD/Transfers/ASL/From_dcm_files/31LP_candidates/ANALYSES/ASLquant_v2-054_Maverick';
-my $xml_template=   '/Users/cmadjar/Documents/McGill/PreventAD/Scripts/ASLquantification/XML_analyses_parameters/ASLparameters_v2.0_2013-10-28.xml';
+my $log_dir     =   '/Users/deback/myfiles/postdoc/experiments/PreventAD/analysis/ASL_quantification/logs/ASLquantFromDICOM_v2-094_Elcapitan/ASLquant_logs';
+my $out         =   '/Users/deback/myfiles/postdoc/experiments/PreventAD/output/ASL/From_dcm_files/31LP_candidates/ANALYSES/ASLquant_v2-094_Elcapitan';
+my $xml_template=   '/Users/deback/myfiles/postdoc/experiments/PreventAD/analysis/ASL_quantification/ASL_quantification_pipeline/XML_analyses_parameters/ASLparameters_v2.0_2013-10-28.xml';
 my ($list,@args);
 
 my @args_table = (["-list",     "string",   1,  \$list,         "list of directories to look in for nlvolume files (converted from dicom)"],
@@ -69,19 +69,19 @@ foreach my $natdir(@dirs){
 	closedir(NATDIR);
 	my @natfiles	= grep(/nlvolume$/, @files);
     foreach my $filename (@natfiles){
-        if ($filename!~/_ASL_/i){ 
-            print "$filename is not an ASL file...\n"; 
+        if ($filename!~/_ASL_/i){
+            print "$filename is not an ASL file...\n";
             next;
         }
-        
+
         # Get the names of the output files
         my ($MC_nlvolume, $MC_minc, $preprocessed_flow,$preprocessed_even,$flow_eff,$even_eff,$flow_se_eff,$even_se_eff,$cbf_map_nlvol, $cbf_map_mnc,$flow_snr,$even_snr) 	= ASL::getOutputNames($filename,$outdir,$nldo_opt);
         if ((-e $preprocessed_flow) && (-e $preprocessed_even) && (-e $flow_eff) && (-e $even_eff) && (-e $cbf_map_nlvol) && (-e $cbf_map_mnc)) {
-            print "$filename has already been processed\n"; 
+            print "$filename has already been processed\n";
             next;
         }
         if (-e $preprocessed_flow || -e $preprocessed_even || -e $flow_eff || -e $even_eff || -e $cbf_map_nlvol || -e $cbf_map_mnc){
-            print "Only part of the outputs are already present for $candID $visit \n Deleting all partial outputs...\n"; 
+            print "Only part of the outputs are already present for $candID $visit \n Deleting all partial outputs...\n";
             print "rm $outdir/*";
         }
 
@@ -156,5 +156,5 @@ foreach my $natdir(@dirs){
         system($command_saveCBF_nlvol);
         system($command_saveCBF_mnc);
         system($command_closeALL);
-    }   
+    }
 }

@@ -20,7 +20,7 @@ Usage $0 [options]
 -help for options
 
 USAGE
-my $log_dir     =   '/Users/cmadjar/Documents/McGill/PreventAD/Scripts/ASLquantification/logs/ASLquantFromDICOM_v2-0_Maverick/Convert_logs';
+my $log_dir     =   '/Users/deback/myfiles/postdoc/experiments/PreventAD/analysis/ASL_quantification/logs/ASLquantFromDICOM_v2-094_Elcapitan/Convert_logs';
 my ($list,@args);
 
 my @args_table = (["-list",     "string",   1,  \$list,         "list of archives to look in for ASL dicom files"],
@@ -53,11 +53,11 @@ foreach my $tar (@tars){
 	print LOG "Site \t\tCandID \t\tVisit\n$site \t$candID \t\t$visit\n";
 
     # Check if archive is valid
-    unless ($tar =~ /tgz$/i){ 
-    	print LOG "\nERROR: $tar is not an archive...\n"; 
+    unless ($tar =~ /tgz$/i){
+    	print LOG "\nERROR: $tar is not an archive...\n";
         next;
     }
-    
+
     # Convert
     my $filename;
     if ($tar =~ /pCASL_(\d+)/) {
@@ -74,12 +74,12 @@ foreach my $tar (@tars){
 		my $command_close	= "nldo close ALL";
 		system($command_open);
 		system($command_save) unless (-e $filename);
-		system($command_close);		
+		system($command_close);
 	} else {
 		print LOG "\nERROR: $tar is not a valid archive containing ASL DICOM\n";
         next;
 	}
-	
+
 	# Check that the file was successfully converted
 	if (-e $filename) {
 		print LOG "Successfully create $filename.\n";
