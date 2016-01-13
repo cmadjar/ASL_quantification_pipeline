@@ -5,3 +5,4 @@ This pipeline required:
 - MINC tool
 - CIVET
 - FSL
+- XML simple
