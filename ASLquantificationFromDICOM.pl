@@ -12,7 +12,7 @@ use ASL_distortion_correction;
 
 my $Usage = <<USAGE;
 
-This pipeline create CBF quantification maps from row ASL data using a .xml file as input 
+This pipeline create CBF quantification maps from row ASL data using a .xml file as input
 for Neurolens analysis. This takes DICOM images as input.
 
 Usage $0 [options]
@@ -20,14 +20,15 @@ Usage $0 [options]
 -help for options
 
 USAGE
-my $data_dir 	 = '/Users/cmadjar/Documents/McGill/PreventAD/Transfers/ASL/'
+
+my $data_dir 	 = '/Users/deback/myfiles/postdoc/experiments/PreventAD/Transfers/ASL/'
 					. 'From_dcm_files/DATA_RELEASE_1.0_candidates';
-my $script_dir   = '/Users/cmadjar/Documents/McGill/PreventAD/Scripts/ASLquantification';
-my $log_dir      = $script_dir . '/logs/ASLquantFromDICOM_v2-054_Maverick/ASLquant_logs';
-my $out          = $data_dir . '/ANALYSES/ASLquant_v2-054_Maverick';
-my $xml_template = $script_dir . '/XML_analyses_parameters/ASLparameters_v2.0_2013-10-28_with_SNR.xml';
+my $script_dir   = '/Users/deback/myfiles/postdoc/experiments/PreventAD/Scripts/ASLquantification';
+my $log_dir     =   '/Users/deback/myfiles/postdoc/experiments/PreventAD/analysis/ASL_quantification/logs/ASLquantFromDICOM_v2-094_Elcapitan/ASLquant_logs';
+my $out         =   '/Users/deback/myfiles/postdoc/experiments/PreventAD/output/ASL/From_dcm_files/31LP_candidates/ANALYSES/ASLquant_v2-094_Elcapitan';
+my $xml_template=   '/Users/deback/myfiles/postdoc/experiments/PreventAD/analysis/ASL_quantification/ASL_quantification_pipeline/XML_analyses_parameters/ASLparameters_v2.0_2013-10-28.xml';
+my ($list,@args);
 my $unwarp  	 = 0; # set fieldmap correction to none
-my ($list, @args);
 
 my @args_table = (
  ["-list",    "string",  1, \$list,         "list of directories with nlvolume files"],
@@ -55,8 +56,8 @@ my $log = "$log_dir/ASLQuantification$date.log";
 print "Log file, $date\n\n";
 #close (LOG);
 
-if(!$list) { 
-	print "You need to specify a file with the list of directory to analyze.\n"; 
+if(!$list) {
+	print "You need to specify a file with the list of directory to analyze.\n";
 	exit 1;
 }
 
@@ -87,40 +88,40 @@ foreach my $natdir (@dirs){
     opendir(NATDIR, $natdir);
     my @files = readdir(NATDIR);
 	closedir(NATDIR);
-	
+
 	# loop through found files in native directory
 	my @natfiles = grep(/nlvolume$/, @files);
     foreach my $filename (@natfiles){
-        if ($filename!~/_ASL_/i){ 
-            print "$filename is not an ASL file...\n"; 
+        if ($filename!~/_ASL_/i){
+            print "$filename is not an ASL file...\n";
             next;
         }
-        
+
         # Get the names of the output files
         my ($MC_nlvolume,         $MC_minc,
-    		$preprocessed_flow,   $preprocessed_even, 
-    		$flow_eff, 			  $even_eff, 
-    		$flow_se_eff,         $even_se_eff,  		  
-    		$cbf_map_nlvol,       $cbf_map_mnc,        
-    		$fmap_rads,           $phase_map, 		  
-    		$mag_map,             $MC_unwarp,           
+    		$preprocessed_flow,   $preprocessed_even,
+    		$flow_eff, 			  $even_eff,
+    		$flow_se_eff,         $even_se_eff,
+    		$cbf_map_nlvol,       $cbf_map_mnc,
+    		$fmap_rads,           $phase_map,
+    		$mag_map,             $MC_unwarp,
     		$flow_snr,            $even_snr
     	   ) = &ASL_distortion_correction::getOutputNames($filename, $outdir, $nldo_opt, $natdir, $unwarp);
-        
-        if ((-e $preprocessed_flow) && (-e $preprocessed_even) 
-            && (-e $flow_eff)       && (-e $even_eff) 
+
+        if ((-e $preprocessed_flow) && (-e $preprocessed_even)
+            && (-e $flow_eff)       && (-e $even_eff)
             && (-e $cbf_map_nlvol)  && (-e $cbf_map_mnc)) {
-            print "$filename has already been processed\n"; 
+            print "$filename has already been processed\n";
             next;
         }
-        
-        if (-e $preprocessed_flow 
-        	|| -e $preprocessed_even || -e $flow_eff 
-        	|| -e $even_eff 		 || -e $cbf_map_nlvol 
+
+        if (-e $preprocessed_flow
+        	|| -e $preprocessed_even || -e $flow_eff
+        	|| -e $even_eff 		 || -e $cbf_map_nlvol
         	|| -e $cbf_map_mnc){
-            print "Only part of the outputs are already present for $candID $visit \n" 
+            print "Only part of the outputs are already present for $candID $visit \n"
             		. " Deleting all partial outputs...\n"
-            		. "rm $outdir/*"; 
+            		. "rm $outdir/*";
         }
 
         # Run preprocessing and GLM on the flow series
@@ -128,7 +129,7 @@ foreach my $natdir (@dirs){
         my $command_close    = "nldo close LAST";
         my $command_closeALL = "nldo close ALL";
         system($command_open);
-        
+
         # run motion correction
         foreach my $plug (@plugin_list){
             next unless ($plug eq "Motion Correction");
@@ -137,22 +138,22 @@ foreach my $natdir (@dirs){
             my $command   = "nldo run '$plug' -inputDataset LAST $options";
             system ($command);
         }
-        
+
         # save MC file as nlvolume and minc
         my $command_saveMCnlvol = "nldo save LAST " . $MC_nlvolume;
         my $command_saveMCminc  = "nldo save LAST " . $MC_minc;
         system ($command_saveMCnlvol);
         system ($command_saveMCminc);
-        system ($command_closeALL);		
+        system ($command_closeALL);
 
         # Do fieldmap correction if unwarp is set
         if ($unwarp) {
-        	my $success = &ASL_distortion_correction::runFieldmapCorrection($fmap_rads, $phase_map, 
-        	                                          $mag_map,   $MC_minc,   
+        	my $success = &ASL_distortion_correction::runFieldmapCorrection($fmap_rads, $phase_map,
+        	                                          $mag_map,   $MC_minc,
         	                                          $MC_unwarp
-        			   					             );	
+        			   					             );
         }
-                
+
         # open unwarped image if fieldmap correction, or MC file otherwise
         $command_open = "nldo open ";
         if ($unwarp) {
@@ -160,7 +161,7 @@ foreach my $natdir (@dirs){
         } else {
         	$command_open .= $MC_nlvolume;
         }
-        
+
         # run CBF analyses
         foreach my $plug (@plugin_list){
             next if ($plug eq "ASL Quantification");
@@ -169,7 +170,7 @@ foreach my $natdir (@dirs){
             my $command     = "nldo run '$plug' -inputDataset LAST $options";
             system($command);
         }
-        
+
         # Save and close the preprocessed images and the effect map for the flow series
         my $command_saveSNRFlow     = "nldo save LAST $flow_snr"  if ($flow_snr);
         my $command_saveEffFlow     = "nldo save LAST $flow_eff";
@@ -184,7 +185,7 @@ foreach my $natdir (@dirs){
         system($command_savePreprocFlow);
         system($command_close); # close the preprocessed flow map
         system($command_close); # close the flow series
-        
+
         # run Spatial Filtering and GLM Time Series plugins on the even series
         foreach my $plug (@plugin_list){
             next unless ($plug eq "GLM Time Series" || $plug eq "Spatial Filtering");
@@ -193,7 +194,7 @@ foreach my $natdir (@dirs){
             my $command     =   "nldo run '$plug' -inputDataset LAST $options";
             system($command);
         }
-        
+
         # Save and close the preprocessed images and the effect map for the even series
         my $command_saveSNREven     = "nldo save LAST $even_snr" if ($even_snr);
         my $command_saveEffEven     = "nldo save LAST $even_eff";
@@ -209,7 +210,7 @@ foreach my $natdir (@dirs){
         system($command_close);
         system($command_close);
         system($command_closeALL);
-        
+
         # Open the even and flow maps and run ASL quantification on them
         my $command_open_flow = "nldo open ".$flow_eff;
         my $command_open_even = "nldo open ".$even_eff;
@@ -228,5 +229,5 @@ foreach my $natdir (@dirs){
         system($command_saveCBF_nlvol);
         system($command_saveCBF_mnc);
         system($command_closeALL);
-    }   
+    }
 }

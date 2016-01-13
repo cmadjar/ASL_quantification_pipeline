@@ -442,7 +442,7 @@ sub createSpreadsheetRow {
 		$mncoptions, $mincstats
 	   ) = @_;
 
-	my $row = $candID . ", " . $visit . ", " . $cbf_map;
+	my $row = $candID . ", " . $visit . ", " . basename($cbf);
 	
 	foreach my $roi (@$roi_list) {
 	
@@ -502,7 +502,7 @@ sub executeNL {
 
     my  $open_cmd     = "nldo open ".$cbf_map." ".$gm_mask;  
     my  $closeALL_cmd = "nldo close ALL";
-    my  $ROIavg_cmd   = "nldo run '$plugin' -maskDataset $gm_mask -targetDataset $cbf_map $options";
+    my  $ROIavg_cmd   = "nldo run '$plugin' -maskDataset $gm_mask -inputDataset $cbf_map $options";
 
     system($open_cmd);
     my  $average      = `$ROIavg_cmd`;
