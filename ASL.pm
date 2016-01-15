@@ -193,13 +193,13 @@ sub runFieldmapCorrection {
 	my $mag_name  = substr(basename($mag_nii), 0, -8);
 	my $mag_brain = $outdir . "/" . $mag_name . "_brain.nii.gz";
 	my $bet_cmd   = "bet $mag_nii $mag_brain -B -f 0.5 -g 0";
-#	system ($bet_cmd) unless (-e $mag_brain);
+	system ($bet_cmd) unless (-e $mag_brain);
 
 	# transform the phase map in radians
 	my $phase_name  = substr(basename($phase_nii), 0, -8);
 	my $phase_rad   = $outdir . "/" . $phase_name . "_phase_rad.nii.gz";
 	my $convert_rad = "fslmaths $phase_nii -div 8190 -mul 3.14159 $phase_rad -odt float";
-#	system ($convert_rad) unless (-e $phase_rad);
+	system ($convert_rad) unless (-e $phase_rad);
 
 	# unwarp the phase map
 	my $uphase_rad =  $outdir . "/" . $phase_name . "_uphase_rad.nii.gz";
@@ -208,23 +208,31 @@ sub runFieldmapCorrection {
 
 	# transform the fieldmap in rad/s
 	my $transf_cmd = "fslmaths $uphase_rad -div 0.00246 $fmap_rads";
-#	system ($transf_cmd) unless (-e $fmap_rads);
+	system ($transf_cmd) unless (-e $fmap_rads);
 
 	# unwarp MC ASL file
-	my $MC_unwarp_name = substr($MC_unwarp, 0, -9);
-	my $MC_unwarp_nii  = $MC_unwarp_name . ".nii";
+	my $MC_unwarp_name  = substr($MC_unwarp, 0, -9);
+	my $MC_unwarp_nii   = $MC_unwarp_name . ".nii";
+  my $MC_unwarp_nlvol = $MC_unwarp_name . ".nlvolume";
+
 	my $unwarp_cmd = "fugue -i $MC_nii --loadfmap=$fmap_rads --dwell=0.000209999328 "
 						. "--asym=0.00246 --unwarpdir=y- -s 0.5 -u $MC_unwarp_nii";
-#	system ($unwarp_cmd);
+	system ($unwarp_cmd);
 
 	# gunzip the $MC_unwarp output
 	my $gunzip_cmd = "gunzip $MC_unwarp_nii.gz";
-#	system ($gunzip_cmd);
+	system ($gunzip_cmd);
 
 	# convert MC_unwarp file back to minc and reinsert minc header information
 	my ($MC_unwarp_mnc)	= &convert2minc($MC_unwarp_nii, $MC_minc);
 
-	# open with neurolens and reinsert slice time offsets
+	# open with neurolens, save it as nlvolume
+  my ($open_mnc) = "nldo open $MC_unwarp_mnc";
+  my ($nldo_save) = "nldo save LAST $MC_unwarp_nlvol";
+  my ($nldo_close) = "nldo close ALL";
+  system($open_mnc);
+  system($nldo_save);
+  system($nldo_close);
 
 	# return undef if $fmap_rad does not exist, 1 otherwise
 	return undef unless (-e $MC_unwarp);

@@ -161,10 +161,11 @@ foreach my $natdir (@dirs){
         } else {
         	$command_open .= $MC_nlvolume;
         }
+				system($command_open);
 
         # run CBF analyses
         foreach my $plug (@plugin_list){
-            next if ($plug eq "ASL Quantification");
+            next if ($plug eq "ASL Quantification" || $plug eq "Motion Correction");
             print "Running $plug on $candID $visit ...\n";
             my ($options)   = &ASL::getParameters($nldo_opt,$plug);
             my $command     = "nldo run '$plug' -inputDataset LAST $options";
@@ -222,7 +223,6 @@ foreach my $natdir (@dirs){
             my ($options) = &ASL::getParameters($nldo_opt,$plug);
             my $cmd = "nldo run '$plug' -m0Estimate $even_eff -deltaM $flow_eff $options";
             system($cmd);
-            print $cmd . "\n";
         }
         my $command_saveCBF_nlvol = "nldo save LAST $cbf_map_nlvol";
         my $command_saveCBF_mnc   = "nldo save LAST $cbf_map_mnc";
@@ -231,3 +231,5 @@ foreach my $natdir (@dirs){
         system($command_closeALL);
     }
 }
+
+exit 0;
