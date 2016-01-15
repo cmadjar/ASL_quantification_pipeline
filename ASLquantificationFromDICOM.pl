@@ -8,7 +8,7 @@ use File::Path 'make_path';
 use Getopt::Tabular;
 use File::Basename;
 use FindBin;
-use ASL_distortion_correction;
+use ASL;
 
 my $Usage = <<USAGE;
 
@@ -68,7 +68,7 @@ close(DIRS);
 
 foreach my $natdir (@dirs){
 	chomp ($natdir);
-	my ($site, $candID, $visit) = &ASL_distortion_correction::getSiteSubjectVisitIDs($natdir);
+	my ($site, $candID, $visit) = &ASL::getSiteSubjectVisitIDs($natdir);
 	next if(!$site);
 	print "Site \t\tCandID \t\tVisit\n$site \t$candID \t\t$visit\n";
 
@@ -106,7 +106,7 @@ foreach my $natdir (@dirs){
     		$fmap_rads,           $phase_map,
     		$mag_map,             $MC_unwarp,
     		$flow_snr,            $even_snr
-    	   ) = &ASL_distortion_correction::getOutputNames($filename, $outdir, $nldo_opt, $natdir, $unwarp);
+    	   ) = &ASL::getOutputNames($filename, $outdir, $nldo_opt, $natdir, $unwarp);
 
         if ((-e $preprocessed_flow) && (-e $preprocessed_even)
             && (-e $flow_eff)       && (-e $even_eff)
@@ -134,7 +134,7 @@ foreach my $natdir (@dirs){
         foreach my $plug (@plugin_list){
             next unless ($plug eq "Motion Correction");
             print "Running $plug on $candID $visit ...\n";
-            my ($options) = &ASL_distortion_correction::getParameters($nldo_opt, $plug);
+            my ($options) = &ASL::getParameters($nldo_opt, $plug);
             my $command   = "nldo run '$plug' -inputDataset LAST $options";
             system ($command);
         }
@@ -148,7 +148,7 @@ foreach my $natdir (@dirs){
 
         # Do fieldmap correction if unwarp is set
         if ($unwarp) {
-        	my $success = &ASL_distortion_correction::runFieldmapCorrection($fmap_rads, $phase_map,
+        	my $success = &ASL::runFieldmapCorrection($fmap_rads, $phase_map,
         	                                          $mag_map,   $MC_minc,
         	                                          $MC_unwarp
         			   					             );
@@ -161,12 +161,13 @@ foreach my $natdir (@dirs){
         } else {
         	$command_open .= $MC_nlvolume;
         }
+				system($command_open);
 
         # run CBF analyses
         foreach my $plug (@plugin_list){
-            next if ($plug eq "ASL Quantification");
+            next if ($plug eq "ASL Quantification" || $plug eq "Motion Correction");
             print "Running $plug on $candID $visit ...\n";
-            my ($options)   = &ASL_distortion_correction::getParameters($nldo_opt,$plug);
+            my ($options)   = &ASL::getParameters($nldo_opt,$plug);
             my $command     = "nldo run '$plug' -inputDataset LAST $options";
             system($command);
         }
@@ -190,7 +191,7 @@ foreach my $natdir (@dirs){
         foreach my $plug (@plugin_list){
             next unless ($plug eq "GLM Time Series" || $plug eq "Spatial Filtering");
             print "Running $plug on $candID $visit even series ...\n";
-            my ($options)   =   &ASL_distortion_correction::getParameters($nldo_opt,$plug);
+            my ($options)   =   &ASL::getParameters($nldo_opt,$plug);
             my $command     =   "nldo run '$plug' -inputDataset LAST $options";
             system($command);
         }
@@ -219,10 +220,9 @@ foreach my $natdir (@dirs){
         foreach my $plug (@plugin_list){
             next unless ($plug eq "ASL Quantification");
             print "Running $plug on $candID $visit even series ...\n";
-            my ($options) = &ASL_distortion_correction::getParameters($nldo_opt,$plug);
+            my ($options) = &ASL::getParameters($nldo_opt,$plug);
             my $cmd = "nldo run '$plug' -m0Estimate $even_eff -deltaM $flow_eff $options";
             system($cmd);
-            print $cmd . "\n";
         }
         my $command_saveCBF_nlvol = "nldo save LAST $cbf_map_nlvol";
         my $command_saveCBF_mnc   = "nldo save LAST $cbf_map_mnc";
@@ -231,3 +231,5 @@ foreach my $natdir (@dirs){
         system($command_closeALL);
     }
 }
+
+exit 0;
